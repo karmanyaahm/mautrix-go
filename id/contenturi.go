@@ -8,6 +8,7 @@ package id
 
 import (
 	"bytes"
+	"database/sql/driver"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -79,7 +80,7 @@ func (uri *ContentURI) UnmarshalJSON(raw []byte) (err error) {
 	if len(raw) < 2 || raw[0] != '"' || raw[len(raw)-1] != '"' {
 		return InputNotJSONString
 	}
-	parsed, err := ParseContentURIBytes(raw[1:len(raw)-1])
+	parsed, err := ParseContentURIBytes(raw[1 : len(raw)-1])
 	if err != nil {
 		return err
 	}
@@ -123,4 +124,22 @@ func (uri *ContentURI) CUString() ContentURIString {
 
 func (uri *ContentURI) IsEmpty() bool {
 	return len(uri.Homeserver) == 0 || len(uri.FileID) == 0
+}
+
+func (m *ContentURI) Scan(value interface{}) error {
+	bytes, ok := value.([]byte)
+	if !ok {
+		println(len(bytes))
+		//return errors.New(fmt.Sprint("Failed to unmarshal value:", value))
+	}
+	if len(bytes) == 0 {
+		uri, _ := ParseContentURI("")
+		*m = uri
+		return nil
+	}
+	return m.UnmarshalText(bytes)
+}
+
+func (m ContentURI) Value() (driver.Value, error) {
+	return m.String(), nil
 }
